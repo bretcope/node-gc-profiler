@@ -95,7 +95,7 @@ namespace GcProfiler
 		if (_pcFreq == 0.0)
 		{
 			QueryPerformanceFrequency(&li);
-			_pcFreq = (double)li.QuadPart * 1000; // so that the freq is in ms instead of seconds.
+			_pcFreq = (double)li.QuadPart / 1000; // so that the freq is in ms instead of seconds.
 		}
 		
 		QueryPerformanceCounter(&li);
