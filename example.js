@@ -3,8 +3,7 @@
 var main = require('./');
 main.on('gc', function (info)
 {
-	console.log('yep');
-	console.log(info);
+	console.log(info.type, info.duration);
 });
 
 run();
