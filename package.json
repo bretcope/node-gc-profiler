@@ -1,0 +1,18 @@
+{
+  "name": "gc-profiler",
+  "description": "Allows you to profile when the garbage collector runs, and how long it takes.",
+  "version": "1.0.0",
+  "author": "Bret Copeland <bret@atlantisflight.org>",
+  "main": "./main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bretcope/node-gc-profiler.git"
+  },
+  "keywords": [
+    "gd",
+    "garbage",
+    "profile",
+    "performance"
+  ],
+  "license": "MIT"
+}
