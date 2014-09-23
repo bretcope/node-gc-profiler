@@ -24,7 +24,7 @@ namespace GcProfiler
 #else
 
 	typedef std::chrono::duration<double, std::ratio<1, 1000>> millisecondsRatioDouble;
-	std::chrono::time_point _timePointStart;
+	std::chrono::time_point<std::chrono::high_resolution_clock> _timePointStart;
 
 #endif
 	
@@ -81,7 +81,6 @@ namespace GcProfiler
 		};
 		
 		_startTime = 0;
-		_counterStart = 0;
 		
 		_callback->Call(argc, argv);
 		
