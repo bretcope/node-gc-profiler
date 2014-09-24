@@ -12,9 +12,19 @@ using namespace v8;
 
 namespace GcProfiler
 {
+	struct GcProfilerData
+	{
+    	uv_work_t request;
+		time_t startTime;
+		GCType type;
+		GCCallbackFlags flags;
+		double duration;
+	};
+
 	// static variables
+	GcProfilerData * _data;
 	Persistent<Function> _callback;
-	time_t _startTime;
+	Persistent<Context> _context;
 	
 #ifdef WIN32
 	
@@ -33,6 +43,8 @@ namespace GcProfiler
 	NAN_METHOD(LoadProfiler);
 	NAN_GC_CALLBACK(Before);
 	NAN_GC_CALLBACK(After);
+	void UvAsyncWork(uv_work_t * req);
+	void UvAsyncAfter(uv_work_t * req);
 	void StartTimer();
 	double EndTimer();
 	
@@ -64,25 +76,43 @@ namespace GcProfiler
 	
 	NAN_GC_CALLBACK(Before)
 	{
-		_startTime = time(NULL);
+		_data = new GcProfilerData();
+		_data->startTime = time(NULL);
 		StartTimer();
 	}
 	
 	NAN_GC_CALLBACK(After)
 	{
-		double duration = EndTimer();
+		_data->duration = EndTimer();
+		_data->type = type;
+		_data->flags = flags;
+		_data->request.data = _data;
+		
+		// can't call the callback immediately - need to defer to when the event loop is ready
+		uv_queue_work(uv_default_loop(), &_data->request, UvAsyncWork, (uv_after_work_cb)UvAsyncAfter);
+	}
+	
+	void UvAsyncWork(uv_work_t * req)
+	{
+		// we don't actually have any work to do, we only care about the "after" callback
+	}
+	
+	void UvAsyncAfter(uv_work_t * req)
+	{
+		NanScope();
+		
+		GcProfilerData * data = (GcProfilerData*)req->data;
+		
 		const unsigned argc = 4;
 		Handle<Value> argv[argc] = {
-			NanNew<Number>(_startTime),
-			NanNew<Number>(duration),
-			NanNew<Number>((int)type),
-			NanNew<Number>((int)flags)
+			NanNew<Number>(data->startTime),
+			NanNew<Number>(data->duration),
+			NanNew<Number>((int)data->type),
+			NanNew<Number>((int)data->flags)
 		};
 		
-		_startTime = 0;
-		
+		delete data;
 		NanMakeCallback(NanGetCurrentContext()->Global(), NanNew(_callback), argc, argv);
-		
 	}
 	
 #ifdef WIN32
