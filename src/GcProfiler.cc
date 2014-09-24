@@ -13,7 +13,7 @@ using namespace v8;
 namespace GcProfiler
 {
 	// static variables
-	NanCallback * _callback;
+	Persistent<Function> _callback;
 	time_t _startTime;
 	
 #ifdef WIN32
@@ -31,8 +31,8 @@ namespace GcProfiler
 	// function prototypes
 	void Init(Handle<Object> exports);
 	NAN_METHOD(LoadProfiler);
-	void Before(GCType gcType, GCCallbackFlags flags);
-	void After(GCType gcType, GCCallbackFlags flags);
+	NAN_GC_CALLBACK(Before);
+	NAN_GC_CALLBACK(After);
 	void StartTimer();
 	double EndTimer();
 	
@@ -55,34 +55,33 @@ namespace GcProfiler
 			NanThrowTypeError("Must provide a callback function to the profiler.");
 		}
 		
-		_callback = new NanCallback(args[0].As<Function>());
-		
-		V8::AddGCPrologueCallback(Before);
-		V8::AddGCEpilogueCallback(After);
+		NanAssignPersistent(_callback, args[0].As<Function>());
+		NanAddGCPrologueCallback(Before);
+		NanAddGCEpilogueCallback(After);
 		
 		NanReturnUndefined();
 	}
 	
-	void Before(GCType gcType, GCCallbackFlags flags)
+	NAN_GC_CALLBACK(Before)
 	{
 		_startTime = time(NULL);
 		StartTimer();
 	}
 	
-	void After(GCType gcType, GCCallbackFlags flags)
+	NAN_GC_CALLBACK(After)
 	{
 		double duration = EndTimer();
 		const unsigned argc = 4;
 		Handle<Value> argv[argc] = {
 			NanNew<Number>(_startTime),
 			NanNew<Number>(duration),
-			NanNew<Number>((int)gcType),
+			NanNew<Number>((int)type),
 			NanNew<Number>((int)flags)
 		};
 		
 		_startTime = 0;
 		
-		_callback->Call(argc, argv);
+		NanMakeCallback(NanGetCurrentContext()->Global(), NanNew(_callback), argc, argv);
 		
 	}
 	
