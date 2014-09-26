@@ -4,8 +4,11 @@
 
 #ifdef WIN32
 #include <windows.h>
-#else
-#include <chrono>
+#endif
+
+#ifdef __MACH__
+#include <mach/clock.h>
+#include <mach/mach.h>
 #endif
 
 using namespace v8;
@@ -14,7 +17,7 @@ namespace GcProfiler
 {
 	struct GcProfilerData
 	{
-    	uv_work_t request;
+		uv_work_t request;
 		time_t startTime;
 		GCType type;
 		GCCallbackFlags flags;
@@ -33,8 +36,7 @@ namespace GcProfiler
 	
 #else
 
-	typedef std::chrono::duration<double, std::ratio<1, 1000>> millisecondsRatioDouble;
-	std::chrono::time_point<std::chrono::high_resolution_clock> _timePointStart;
+	struct timespec _timePointStart;
 
 #endif
 	
@@ -114,9 +116,24 @@ namespace GcProfiler
 		delete data;
 		NanMakeCallback(NanGetCurrentContext()->Global(), NanNew(_callback), argc, argv);
 	}
+
+#ifdef __MACH__
+#define CLOCK_REALTIME 0
+
+	void clock_gettime(int /* assume CLOCK_REALTIME */, struct timespec* ts)
+	{
+		clock_serv_t cclock;
+		mach_timespec_t mts;
+		host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+		clock_get_time(cclock, &mts);
+		mach_port_deallocate(mach_task_self(), cclock);
+		ts->tv_sec = mts.tv_sec;
+		ts->tv_nsec = mts.tv_nsec;
+	}
+
+#endif
 	
 #ifdef WIN32
-	
 	void StartTimer ()
 	{
 		LARGE_INTEGER li;
@@ -141,15 +158,34 @@ namespace GcProfiler
 
 	void StartTimer ()
 	{
-		_timePointStart = std::chrono::high_resolution_clock::now();
+		clock_gettime(CLOCK_REALTIME, &_timePointStart);
 	}
 	
 	double EndTimer ()
 	{
-		auto duration = std::chrono::high_resolution_clock::now() - _timePointStart;
-		return millisecondsRatioDouble(duration).count();
+		struct timespec end;
+		clock_gettime(CLOCK_REALTIME, &end);
+
+		// subtract end from _timePointStart
+		struct timespec result;
+
+		if ((end.tv_nsec - _timePointStart.tv_nsec) < 0)
+		{
+			result.tv_sec = end.tv_sec - _timePointStart.tv_sec - 1;
+			result.tv_nsec = 1000000000 + end.tv_nsec - _timePointStart.tv_nsec;
+		}
+		else
+		{
+			result.tv_sec = end.tv_sec - _timePointStart.tv_sec;
+			result.tv_nsec = end.tv_nsec - _timePointStart.tv_nsec;
+		}
+
+		// convert to ms
+		return (result.tv_sec * 1000) + double(result.tv_nsec) / 1000000; // ns -> ms
 	}
 
 #endif
 
 };
+
+// vim: noet ts=4 sw=4
