@@ -6,6 +6,11 @@
 #include <windows.h>
 #endif
 
+#ifdef __MACH__
+#include <mach/clock.h>
+#include <mach/mach.h>
+#endif
+
 using namespace v8;
 
 namespace GcProfiler
@@ -111,6 +116,22 @@ namespace GcProfiler
 		delete data;
 		NanMakeCallback(NanGetCurrentContext()->Global(), NanNew(_callback), argc, argv);
 	}
+
+#ifdef __MACH__
+#define CLOCK_REALTIME 0
+
+	void clock_gettime(int /* assume CLOCK_REALTIME */, struct timespec* ts)
+	{
+		clock_serv_t cclock;
+		mach_timespec_t mts;
+		host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+		clock_get_time(cclock, &mts);
+		mach_port_deallocate(mach_task_self(), cclock);
+		ts->tv_sec = mts.tv_sec;
+		ts->tv_nsec = mts.tv_nsec;
+	}
+
+#endif
 	
 #ifdef WIN32
 	void StartTimer ()
