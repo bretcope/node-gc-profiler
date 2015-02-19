@@ -16,6 +16,6 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "nan": "git+https://github.com/rvagg/nan.git#df2cdbcc4869af5ed1e29e2e6d5aeed9ad5a3f41"
+    "nan": "^1.6.2"
   }
 }
