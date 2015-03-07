@@ -12,7 +12,7 @@ var GC_TYPES = {
 	3: 'All'
 };
 
-var GCCallbackFlags = {
+main.GCCallbackFlags = {
 	kNoGCCallbackFlags: 0,
 	kGCCallbackFlagCompacted: 1 << 0,
 	kGCCallbackFlagConstructRetainedObjectInfos: 1 << 1,
@@ -25,8 +25,8 @@ GcProfiler.loadProfiler(function (startTime, ms, type, flags)
 		date: new Date(startTime * 1000),
 		duration: ms,
 		type: GC_TYPES[type],
-		compacted: !!(flags & GCCallbackFlags.kGCCallbackFlagCompacted),
-		forced: !!(flags && GCCallbackFlags.kGCCallbackFlagForced)
+		forced: !!(flags && main.GCCallbackFlags.kGCCallbackFlagForced),
+		flags: flags
 	};
 	
 	main.emit('gc', info);

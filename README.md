@@ -22,5 +22,16 @@ The `info` object contains the following properties:
 | date | Date | The approximate start time of the GC cycle. This uses the c++ time library internally, which only has one-second resolution. |
 | duration | number | The duration of the GC cycle in milliseconds. |
 | type | string | Either `Scavenge` or `MarkSweepCompact` depending on the type of GC cycle. |
-| compacted | boolean | True for a compacted cycle. |
 | forced | boolean | True for a forced cycle. |
+| flags | number | The raw GCCallbackFlags provided from v8. |
+
+The `profiler.GCCallbackFlags` enumeration is provided to help decode the `flags` property.
+
+```js
+profiler.GCCallbackFlags = {
+  kNoGCCallbackFlags: 0,
+  kGCCallbackFlagCompacted: 1 << 0, // this flag is never set in v8 versions >= 3.6.5
+  kGCCallbackFlagConstructRetainedObjectInfos: 1 << 1,
+  kGCCallbackFlagForced: 1 << 2
+};
+```
