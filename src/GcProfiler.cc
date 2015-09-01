@@ -1,5 +1,5 @@
 #include <node.h>
-#include "../node_modules/nan/nan.h"
+#include <nan.h>
 #include <time.h>
 
 #ifdef WIN32
@@ -26,8 +26,8 @@ namespace GcProfiler
 
 	// static variables
 	GcProfilerData * _data;
-	Persistent<Function> _callback;
-	Persistent<Context> _context;
+	Nan::Persistent<v8::Function> _callback;
+	// Nan::Persistent<Context> _context;
 	
 #ifdef WIN32
 	
@@ -41,7 +41,7 @@ namespace GcProfiler
 #endif
 	
 	// function prototypes
-	void Init(Handle<Object> exports);
+	void Init(v8::Local<v8::Object> exports, v8::Local<v8::Object> module);
 	NAN_METHOD(LoadProfiler);
 	NAN_GC_CALLBACK(Before);
 	NAN_GC_CALLBACK(After);
@@ -55,27 +55,28 @@ namespace GcProfiler
 	
 	// --- functions ---
 	
-	void Init (Handle<Object> exports)
+	void Init (v8::Local<v8::Object> exports, v8::Local<v8::Object> module)
 	{
-		NODE_SET_METHOD(exports, "loadProfiler", LoadProfiler);
+		exports->Set(Nan::New("loadProfiler").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(LoadProfiler)->GetFunction());
 	}
 
-	NAN_METHOD(LoadProfiler)
-	{
-		NanScope();
-		
-		if (args.Length() == 0 || !args[0]->IsFunction())
-		{
-			NanThrowTypeError("Must provide a callback function to the profiler.");
-		}
-		
-		NanAssignPersistent(_callback, args[0].As<Function>());
-		NanAddGCPrologueCallback(Before);
-		NanAddGCEpilogueCallback(After);
-		
-		NanReturnUndefined();
+
+	void LoadProfiler(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+
+	  if (info.Length() == 0 || !info[0]->IsFunction())
+    {
+      Nan::ThrowTypeError("Must provide a callback function to the profiler.");
+      return;
+    }
+
+    _callback.Reset(Nan::Persistent<v8::Function>(info[0].As<v8::Function>()));
+
+    Nan::AddGCPrologueCallback(Before);
+    Nan::AddGCEpilogueCallback(After);
+
+    return info.GetReturnValue().SetUndefined();
 	}
-	
+
 	NAN_GC_CALLBACK(Before)
 	{
 		_data = new GcProfilerData();
@@ -101,20 +102,20 @@ namespace GcProfiler
 	
 	void UvAsyncAfter(uv_work_t * req)
 	{
-		NanScope();
+		Nan::HandleScope scope;
 		
 		GcProfilerData * data = (GcProfilerData*)req->data;
 		
 		const unsigned argc = 4;
-		Handle<Value> argv[argc] = {
-			NanNew<Number>(data->startTime),
-			NanNew<Number>(data->duration),
-			NanNew<Number>((int)data->type),
-			NanNew<Number>((int)data->flags)
+		v8::Local<v8::Value> argv[argc] = {
+			Nan::New<Number>(data->startTime),
+			Nan::New<Number>(data->duration),
+			Nan::New<Number>((int)data->type),
+			Nan::New<Number>((int)data->flags)
 		};
 		
 		delete data;
-		NanMakeCallback(NanGetCurrentContext()->Global(), NanNew(_callback), argc, argv);
+		Nan::MakeCallback(Nan::GetCurrentContext()->Global(), Nan::New(_callback), argc, argv);
 	}
 
 #ifdef __MACH__

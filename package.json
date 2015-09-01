@@ -3,7 +3,12 @@
   "description": "Allows you to profile when the garbage collector runs, and how long it takes.",
   "version": "1.2.0",
   "author": "Bret Copeland <bret@atlantisflight.org>",
+  "contributors": [{
+    "name": "Daniel Khan",
+    "email": "daniel@khan.io"
+  }],
   "main": "./main.js",
+  "gypfile": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/bretcope/node-gc-profiler.git"
@@ -16,6 +21,6 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "nan": "^1.6.2"
+    "nan": "^2.0.8"
   }
 }
