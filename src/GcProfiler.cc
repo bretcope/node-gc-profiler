@@ -27,7 +27,6 @@ namespace GcProfiler
 	// static variables
 	GcProfilerData * _data;
 	Nan::Persistent<v8::Function> _callback;
-	// Nan::Persistent<Context> _context;
 	
 #ifdef WIN32
 	
@@ -61,20 +60,20 @@ namespace GcProfiler
 	}
 
 
-	void LoadProfiler(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-
-	  if (info.Length() == 0 || !info[0]->IsFunction())
-    {
-      Nan::ThrowTypeError("Must provide a callback function to the profiler.");
-      return;
-    }
-
-    _callback.Reset(info[0].As<v8::Function>());
-
-    Nan::AddGCPrologueCallback(Before);
-    Nan::AddGCEpilogueCallback(After);
-
-    return info.GetReturnValue().SetUndefined();
+	void LoadProfiler(const Nan::FunctionCallbackInfo<v8::Value>& info)
+	{
+		if (info.Length() == 0 || !info[0]->IsFunction())
+		{
+			Nan::ThrowTypeError("Must provide a callback function to the profiler.");
+			return;
+		}
+		
+		_callback.Reset(info[0].As<v8::Function>());
+		
+		Nan::AddGCPrologueCallback(Before);
+		Nan::AddGCEpilogueCallback(After);
+		
+		return info.GetReturnValue().SetUndefined();
 	}
 
 	NAN_GC_CALLBACK(Before)
