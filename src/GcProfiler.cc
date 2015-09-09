@@ -69,7 +69,7 @@ namespace GcProfiler
       return;
     }
 
-    _callback.Reset(Nan::Persistent<v8::Function>(info[0].As<v8::Function>()));
+    _callback.Reset(info[0].As<v8::Function>());
 
     Nan::AddGCPrologueCallback(Before);
     Nan::AddGCEpilogueCallback(After);
