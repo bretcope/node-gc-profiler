@@ -16,7 +16,7 @@
     "url": "https://github.com/bretcope/node-gc-profiler.git"
   },
   "keywords": [
-    "gd",
+    "gc",
     "garbage",
     "profile",
     "performance"
