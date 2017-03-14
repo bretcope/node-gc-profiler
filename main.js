@@ -6,10 +6,13 @@ var GcProfiler = require('./build/Release/GcProfiler');
 var main = new EventEmitter();
 module.exports = main;
 
+// https://github.com/v8/v8/blob/ca9ec36eb5881f73c1ac1b5a5df710227ad96fae/include/v8.h#L5228
 var GC_TYPES = {
 	1: 'Scavenge',
 	2: 'MarkSweepCompact',
-	3: 'All'
+	4: 'IncrementalMarking',
+	8: 'ProcessWeakCallbacks',
+	15: 'All'
 };
 
 main.GCCallbackFlags = {
@@ -28,6 +31,6 @@ GcProfiler.loadProfiler(function (startTime, ms, type, flags)
 		forced: !!(flags && main.GCCallbackFlags.kGCCallbackFlagForced),
 		flags: flags
 	};
-	
+
 	main.emit('gc', info);
 });
