@@ -40,8 +40,8 @@ namespace GcProfiler
 #endif
 	
 	// function prototypes
-	void Init(v8::Local<v8::Object> exports, v8::Local<v8::Object> module);
-	NAN_METHOD(LoadProfiler);
+	NAN_MODULE_INIT(Init);
+	NAN_METHOD(loadProfiler);
 	NAN_GC_CALLBACK(Before);
 	NAN_GC_CALLBACK(After);
 	void UvAsyncWork(uv_work_t * req);
@@ -54,13 +54,13 @@ namespace GcProfiler
 	
 	// --- functions ---
 	
-	void Init (v8::Local<v8::Object> exports, v8::Local<v8::Object> module)
+	NAN_MODULE_INIT(Init)
 	{
-		exports->Set(Nan::New("loadProfiler").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(LoadProfiler)->GetFunction());
+		NAN_EXPORT(target, loadProfiler);
 	}
 
 
-	void LoadProfiler(const Nan::FunctionCallbackInfo<v8::Value>& info)
+	void loadProfiler(const Nan::FunctionCallbackInfo<v8::Value>& info)
 	{
 		if (info.Length() == 0 || !info[0]->IsFunction())
 		{
