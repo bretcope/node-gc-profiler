@@ -13,8 +13,6 @@
 
 using namespace v8;
 
-static Nan::AsyncResource* async_resource;
-
 namespace GcProfiler
 {
 	struct GcProfilerData
@@ -72,7 +70,6 @@ namespace GcProfiler
 
 		_callback.Reset(info[0].As<v8::Function>());
 
-		async_resource = new Nan::AsyncResource("loadProfiler");
 		Nan::AddGCPrologueCallback(Before);
 		Nan::AddGCEpilogueCallback(After);
 
@@ -117,9 +114,8 @@ namespace GcProfiler
 		};
 
 		delete data;
-		async_resource->runInAsyncScope(
+		Nan::AsyncResource("loadProfiler").runInAsyncScope(
 			Nan::GetCurrentContext()->Global(), Nan::New(_callback), argc, argv);
-		delete async_resource;
 	}
 
 #ifdef __MACH__
