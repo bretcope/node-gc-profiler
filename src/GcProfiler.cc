@@ -13,6 +13,8 @@
 
 using namespace v8;
 
+static Nan::AsyncResource* async_resource;
+
 namespace GcProfiler
 {
 	struct GcProfilerData
@@ -27,33 +29,33 @@ namespace GcProfiler
 	// static variables
 	GcProfilerData * _data;
 	Nan::Persistent<v8::Function> _callback;
-	
+
 #ifdef WIN32
-	
+
 	double _pcFreq = 0.0;
 	__int64 _counterStart = 0;
-	
+
 #else
 
 	struct timespec _timePointStart;
 
 #endif
-	
+
 	// function prototypes
 	NAN_MODULE_INIT(Init);
 	NAN_METHOD(loadProfiler);
 	NAN_GC_CALLBACK(Before);
 	NAN_GC_CALLBACK(After);
 	void UvAsyncWork(uv_work_t * req);
-	void UvAsyncAfter(uv_work_t * req);
+	void UvAsyncAfter(uv_work_t * req, int);
 	void StartTimer();
 	double EndTimer();
-	
+
 	// init
 	NODE_MODULE(GcProfiler, Init)
-	
+
 	// --- functions ---
-	
+
 	NAN_MODULE_INIT(Init)
 	{
 		NAN_EXPORT(target, loadProfiler);
@@ -67,12 +69,13 @@ namespace GcProfiler
 			Nan::ThrowTypeError("Must provide a callback function to the profiler.");
 			return;
 		}
-		
+
 		_callback.Reset(info[0].As<v8::Function>());
-		
+
+		async_resource = new Nan::AsyncResource("loadProfiler");
 		Nan::AddGCPrologueCallback(Before);
 		Nan::AddGCEpilogueCallback(After);
-		
+
 		return info.GetReturnValue().SetUndefined();
 	}
 
@@ -82,29 +85,29 @@ namespace GcProfiler
 		_data->startTime = time(NULL);
 		StartTimer();
 	}
-	
+
 	NAN_GC_CALLBACK(After)
 	{
 		_data->duration = EndTimer();
 		_data->type = type;
 		_data->flags = flags;
 		_data->request.data = _data;
-		
+
 		// can't call the callback immediately - need to defer to when the event loop is ready
 		uv_queue_work(uv_default_loop(), &_data->request, UvAsyncWork, (uv_after_work_cb)UvAsyncAfter);
 	}
-	
+
 	void UvAsyncWork(uv_work_t * req)
 	{
 		// we don't actually have any work to do, we only care about the "after" callback
 	}
-	
-	void UvAsyncAfter(uv_work_t * req)
+
+	void UvAsyncAfter(uv_work_t * req, int)
 	{
 		Nan::HandleScope scope;
-		
+
 		GcProfilerData * data = (GcProfilerData*)req->data;
-		
+
 		const unsigned argc = 4;
 		v8::Local<v8::Value> argv[argc] = {
 			Nan::New<Number>(data->startTime),
@@ -112,9 +115,11 @@ namespace GcProfiler
 			Nan::New<Number>((int)data->type),
 			Nan::New<Number>((int)data->flags)
 		};
-		
+
 		delete data;
-		Nan::MakeCallback(Nan::GetCurrentContext()->Global(), Nan::New(_callback), argc, argv);
+		async_resource->runInAsyncScope(
+			Nan::GetCurrentContext()->Global(), Nan::New(_callback), argc, argv);
+		delete async_resource;
 	}
 
 #ifdef __MACH__
@@ -132,22 +137,22 @@ namespace GcProfiler
 	}
 
 #endif
-	
+
 #ifdef WIN32
 	void StartTimer ()
 	{
 		LARGE_INTEGER li;
-		
+
 		if (_pcFreq == 0.0)
 		{
 			QueryPerformanceFrequency(&li);
 			_pcFreq = (double)li.QuadPart / 1000; // so that the freq is in ms instead of seconds.
 		}
-		
+
 		QueryPerformanceCounter(&li);
 		_counterStart = li.QuadPart;
 	}
-	
+
 	double EndTimer ()
 	{
 		LARGE_INTEGER li;
@@ -160,7 +165,7 @@ namespace GcProfiler
 	{
 		clock_gettime(CLOCK_REALTIME, &_timePointStart);
 	}
-	
+
 	double EndTimer ()
 	{
 		struct timespec end;
